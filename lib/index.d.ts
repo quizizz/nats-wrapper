@@ -15,7 +15,7 @@ interface SubOptions {
     max?: number;
     timeout?: number;
 }
-declare class NATS {
+export declare class NATS {
     name: string;
     emitter: EventEmitter;
     config: NATSConfig;
@@ -86,4 +86,4 @@ declare class NATS {
      */
     unsubscribe(sub: Subscription): void;
 }
-export default NATS;
+export {};
