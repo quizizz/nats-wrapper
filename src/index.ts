@@ -19,7 +19,7 @@ interface SubOptions {
 
 const jc = JSONCodec<object>();
 
-class NATS {
+export class NATS {
 	name: string;
 	emitter: EventEmitter;
 	config: NATSConfig;
@@ -136,5 +136,3 @@ class NATS {
 		sub.unsubscribe();
 	}
 }
-
-export default NATS;

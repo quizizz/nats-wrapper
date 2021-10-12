@@ -3,12 +3,12 @@
 const hold = require('hold-it');
 const EventEmitter = require('events').EventEmitter;
 
-import NATS from '../src/index';
+import { NATS } from '../src/index';
 
 const emitter = new EventEmitter();
 emitter.on('error', console.error.bind(console));
 emitter.on('success', console.log.bind(console));
-emitter.on('info', console.log.bind(console));
+emitter.on('log', console.log.bind(console));
 
 describe('NATS', function () {
 	it('should connect to default config', async function () {
