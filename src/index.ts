@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { connect, createInbox, DebugEvents, Events, JSONCodec, NatsConnection, PublishOptions, Subscription } from 'nats';
+import { connect, JSONCodec, NatsConnection, PublishOptions, Subscription } from 'nats';
 
 interface NATSConfig {
 	servers?: string | string[];
@@ -11,31 +11,31 @@ interface NATSConfig {
 	noRandomize?: false;
 }
 
-interface SubMapping {
-	[key: number]: Subscription
+interface SubOptions {
+	queue?: string;
+	max?: number;
+	timeout?: number;
 }
 
-const jc = JSONCodec();
+const jc = JSONCodec<object>();
 
 class NATS {
 	name: string;
 	emitter: EventEmitter;
 	config: NATSConfig;
 	client: NatsConnection;
-	subscriptions: SubMapping;
 
 	/**
 	 * Constructor for the NATS wrapper
 	 * @param {string} name unique name to this service
 	 * @param {EventEmitter} emitter emitter for the service
-	 * @param {Object} config (optional) configuration object of service
+	 * @param {object} config (optional) configuration object of service
 	 */
 	constructor(name: string, emitter: EventEmitter, config?: NATSConfig) {
 		this.name = name;
 		this.emitter = emitter;
 		this.config = Object.assign({}, config);
 		this.client = null;
-		this.subscriptions = {};
 	}
 
 	/**
@@ -72,85 +72,64 @@ class NATS {
 	}
 
 	_registerConnEvents(): void {
-		// NATS documentation is outdated and doesn't recognize the method 'on()'
-
-		// @ts-ignore
-		this.client.on('connect', (nc) => {
-			this.success('client connected');
-		});
-
-		// @ts-ignore
-		this.client.on(Events.Disconnect, (url) => {
-			this.error(new Error('client disconnected'), url);
-		});
-
-		// @ts-ignore
-		this.client.on(DebugEvents.Reconnecting, (url) => {
-			this.log('client reconnecting', url);
-		});
-
-		// @ts-ignore
-		this.client.on(Events.Reconnect, (nc, url) => {
-			this.success('client reconnected', url);
-		});
-
-		// @ts-ignore
-		this.client.on('serversChanged', (ce) => {
-			this.log('servers changed', {
-				added: ce.added,
-				removed: ce.removed,
-			});
-		});
-
-		// @ts-ignore
-		this.client.on(Events.Error, (err) => {
-			this.error(err, 'client got an out of band error');
-		});
 	}
 
 	/**
 	 * Connects to the NATS server
-	 * @returns {Promise<Object>} instance of the connection
+	 * @returns {Promise<NATS>} instance of the wrapper
 	 */
-	init(): Promise<Object> {
+	async init(): Promise<NATS> {
 		if (this.client) {
 			return Promise.resolve(this);
 		}
 		this.log('Connecting to', this.config.servers || 'localhost');
-		connect(this.config)
-			.then((connection: NatsConnection) => {
-				this.client = connection;
-				this._registerConnEvents();
-				return this;
-			})
-			.catch((reason: any) => {
-				this.error(new Error('Failed to connect to the NATS server'), reason);
-				return this;
-			});
+		try {
+			const connection = await connect(this.config);
+			this.client = connection;
+			this._registerConnEvents();
+		} catch (reason) {
+			this.error(new Error('Failed to connect to the NATS server'), reason);
+		}
+		return this;
 	}
 
 	/**
 	 * Publish data to a subject
-	 * @param {string} subject subject/topic to publish data to
-	 * @param {Object} data data to be published
+	 * @param {Object.<string, any>} obj
+	 * @param {string} obj.subject subject to publish to
+	 * @param {object} data payload
+	 * @param {PublishOptions} options include a `reply` subject if needed
 	 */
-	publish(subject: string, data: Object): void {
-		this.client.publish(subject, jc.encode(data));
+	publish({ subject, data, options }: { subject: string, data: object, options: PublishOptions }): void {
+		this.client.publish(subject, jc.encode(data), options);
 	}
 
 	/**
 	 * Subscribe to a subject
-	 * @param {string} subject subject/topic to subscribe from
-	 * @callback callback calls this fn with the decoded data 
+	 * @param {Object.<string, any>} obj
+	 * @param {string} obj.subject subject to publish to
+	 * @param {function} obj.callback callback to invoke
+	 * @param {SubOptions} obj.options subscription options
 	 */
-	subscribe(subject: string, callback: (data: Object) => void) {
-		const sub = this.client.subscribe(subject);
-		this.subscriptions[sub.getID()] = sub;
+	subscribe({ subject, callback, options }: { subject: string, callback: ({data, reply}: {data: object, reply: string}) => void, options: SubOptions }): Subscription {
+		const sub = this.client.subscribe(subject, options);
 		(async () => {
 			for await (const m of sub) {
-				callback(jc.decode(m.data));
+				callback({
+					data: jc.decode(m.data),
+					reply: m.reply,
+				});
 			}
 		})();
+		return sub;
+	}
+
+	/**
+	 * Unsubscribe from a subject
+	 * @param {Subscription} sub subscription instance
+	 */
+	unsubscribe(sub: Subscription): void {
+		sub.unsubscribe();
 	}
 }
 
