@@ -110,6 +110,7 @@ class NATS {
 	 * @param {string} obj.subject subject to publish to
 	 * @param {function} obj.callback callback to invoke
 	 * @param {SubOptions} obj.options subscription options
+	 * @returns {Subscription} the subscription instance
 	 */
 	subscribe({ subject, callback, options }: { subject: string, callback: ({data, reply}: {data: object, reply: string}) => void, options: SubOptions }): Subscription {
 		const sub = this.client.subscribe(subject, options);
