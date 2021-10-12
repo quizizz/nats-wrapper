@@ -88,7 +88,9 @@ class NATS {
 			this.client = connection;
 			this._registerConnEvents();
 		} catch (reason) {
-			this.error(new Error('Failed to connect to the NATS server'), reason);
+			const error = new Error(reason);
+			this.error(error, 'Failed to connect to the NATS server');
+			throw error;
 		}
 		return this;
 	}
@@ -112,11 +114,12 @@ class NATS {
 	 * @param {SubOptions} obj.options subscription options
 	 * @returns {Subscription} the subscription instance
 	 */
-	subscribe({ subject, callback, options }: { subject: string, callback: ({data, reply}: {data: object, reply: string}) => void, options: SubOptions }): Subscription {
+	subscribe({ subject, callback, options }: { subject: string, callback: ({ sub, data, reply }: { sub: Subscription, data: object, reply: string }) => void, options: SubOptions }): Subscription {
 		const sub = this.client.subscribe(subject, options);
 		(async () => {
 			for await (const m of sub) {
 				callback({
+					sub,
 					data: jc.decode(m.data),
 					reply: m.reply,
 				});

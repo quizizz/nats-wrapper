@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-import { NatsConnection, Subscription } from 'nats';
+import { NatsConnection, PublishOptions, Subscription } from 'nats';
 interface NATSConfig {
     servers?: string | string[];
     timeout?: number;
@@ -9,6 +9,11 @@ interface NATSConfig {
     reconnect?: boolean;
     maxReconnectAttempts?: number;
     noRandomize?: false;
+}
+interface SubOptions {
+    queue?: string;
+    max?: number;
+    timeout?: number;
 }
 declare class NATS {
     name: string;
@@ -19,7 +24,7 @@ declare class NATS {
      * Constructor for the NATS wrapper
      * @param {string} name unique name to this service
      * @param {EventEmitter} emitter emitter for the service
-     * @param {Object} config (optional) configuration object of service
+     * @param {object} config (optional) configuration object of service
      */
     constructor(name: string, emitter: EventEmitter, config?: NATSConfig);
     /**
@@ -43,22 +48,38 @@ declare class NATS {
     _registerConnEvents(): void;
     /**
      * Connects to the NATS server
-     * @returns {Promise<Object>} instance of the connection
+     * @returns {Promise<NATS>} instance of the wrapper
      */
-    init(): Promise<Object>;
+    init(): Promise<NATS>;
     /**
      * Publish data to a subject
-     * @param {string} subject subject/topic to publish data to
-     * @param {Object} data data to be published
+     * @param {Object.<string, any>} obj
+     * @param {string} obj.subject subject to publish to
+     * @param {object} data payload
+     * @param {PublishOptions} options include a `reply` subject if needed
      */
-    publish(subject: string, data: Object): void;
+    publish({ subject, data, options }: {
+        subject: string;
+        data: object;
+        options: PublishOptions;
+    }): void;
     /**
      * Subscribe to a subject
-     * @param {string} subject subject/topic to subscribe from
-     * @callback callback called with the data received
-     * @returns {Subscription} subscription instance
+     * @param {Object.<string, any>} obj
+     * @param {string} obj.subject subject to publish to
+     * @param {function} obj.callback callback to invoke
+     * @param {SubOptions} obj.options subscription options
+     * @returns {Subscription} the subscription instance
      */
-    subscribe(subject: string, callback: (err: string | null, data: Object) => void): Subscription;
+    subscribe({ subject, callback, options }: {
+        subject: string;
+        callback: ({ sub, data, reply }: {
+            sub: Subscription;
+            data: object;
+            reply: string;
+        }) => void;
+        options: SubOptions;
+    }): Subscription;
     /**
      * Unsubscribe from a subject
      * @param {Subscription} sub subscription instance
