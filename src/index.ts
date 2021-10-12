@@ -82,7 +82,7 @@ export class NATS {
 		if (this.client) {
 			return Promise.resolve(this);
 		}
-		this.log('Connecting to', this.config.servers || 'localhost');
+		this.log('Connecting with following config', this.config);
 		try {
 			const connection = await connect(this.config);
 			this.client = connection;
@@ -92,6 +92,7 @@ export class NATS {
 			this.error(error, 'Failed to connect to the NATS server');
 			throw error;
 		}
+		this.success('Connected with following config', this.config);
 		return this;
 	}
 
