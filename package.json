@@ -1,0 +1,31 @@
+{
+  "name": "@quizizz/nats",
+  "version": "0.1.0",
+  "description": "A simple wrapper for NATS with pubsub and request-reply support",
+  "main": "lib/index.js",
+  "scripts": {
+    "compile": "npx tsc",
+    "test": "mocha --no-timeouts --bail test/*.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quizizz/nats-wrapper.git"
+  },
+  "keywords": [
+    "nats",
+    "meta",
+    "js"
+  ],
+  "author": "Anas Khan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/quizizz/nats-wrapper/issues"
+  },
+  "homepage": "https://github.com/quizizz/nats-wrapper#readme",
+  "devDependencies": {
+    "typescript": "^4.4.3"
+  },
+  "dependencies": {
+    "nats": "^2.2.0"
+  }
+}
