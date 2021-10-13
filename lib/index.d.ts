@@ -47,6 +47,11 @@ export declare class NATS {
     error(err: Error, data?: any): void;
     _registerConnEvents(): void;
     /**
+     * Gets the connection instance
+     * @returns {NatsConnection} the connection instance
+     */
+    getConnection(): NatsConnection;
+    /**
      * Connects to the NATS server
      * @returns {Promise<NATS>} instance of the wrapper
      */

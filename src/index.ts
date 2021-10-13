@@ -98,6 +98,14 @@ export class NATS {
 	}
 
 	/**
+	 * Gets the connection instance
+	 * @returns {NatsConnection} the connection instance
+	 */
+	getConnection(): NatsConnection {
+		return this.client;
+	}
+
+	/**
 	 * Connects to the NATS server
 	 * @returns {Promise<NATS>} instance of the wrapper
 	 */
