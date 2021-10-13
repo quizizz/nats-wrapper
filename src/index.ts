@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { connect, JSONCodec, NatsConnection, PublishOptions, Subscription } from 'nats';
+import { connect, Events, JSONCodec, NatsConnection, PublishOptions, Subscription } from 'nats';
 
 interface NATSConfig {
 	servers?: string | string[];
@@ -72,6 +72,29 @@ export class NATS {
 	}
 
 	_registerConnEvents(): void {
+		const statusIterable = this.client.status();
+		(async () => {
+			for await (const status of statusIterable) {
+				const { type, data } = status;
+				switch (type) {
+					case Events.Disconnect:
+						this.error(new Error('client disconnected'), data);
+						break;
+					case Events.Reconnect:
+						this.success('client reconnected', data);
+						break;
+					case Events.Error:
+						this.error(new Error('client errored'), data);
+						break;
+					case Events.Update:
+						this.log('config update', data);
+						break;
+					default:
+						this.log(type, data);
+						break;
+				}
+			}
+		})();
 	}
 
 	/**
